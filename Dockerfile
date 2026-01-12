@@ -1,25 +1,28 @@
 FROM python:3.9-alpine3.13
-LABEL maintainer="https://rijontahiri.netlify.app/"
 ENV PYTHONUNBUFFERED=1
 
+# Install system deps
+RUN apk add --no-cache bash build-base musl-dev python3-dev libffi-dev \
+    postgresql-dev postgresql-libs
+
+# Create virtualenv
+RUN python -m venv /py
+ENV PATH="/py/bin:$PATH"
+
+# Upgrade pip
+RUN pip install --upgrade pip setuptools wheel
+
+# Copy requirements
 COPY ./requirements.txt /tmp/requirements.txt
-COPY ./requirements.dev.txt /tmp/requirements.dev.txt
+
+# Install Python packages
+RUN pip install -r /tmp/requirements.txt
+
+# Copy app
 COPY ./app /app
 WORKDIR /app
 EXPOSE 8000
 
-ARG DEV=false
-
-RUN apk add --no-cache bash && \
-    python -m venv /py && \
-    /py/bin/pip install --upgrade pip && \
-    /py/bin/pip install -r /tmp/requirements.txt && \
-    if [ "$DEV" = "true" ]; then \
-        /py/bin/pip install -r /tmp/requirements.dev.txt ; \
-    fi && \
-    rm -rf /tmp && \
-    adduser -D django-user
-
-ENV PATH="/py/bin:$PATH"
-
+# Create user
+RUN adduser -D django-user
 USER django-user
